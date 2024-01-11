@@ -1,0 +1,167 @@
+package scene;
+
+import java.awt.*;
+import java.awt.image.BufferedImage;
+import java.io.File;
+import java.io.IOException;
+import java.util.ArrayList;
+
+import decorateur.*;
+import decorateur.Composite;
+import geometry.Triangles;
+import light.DirectionalLight;
+import light.Light;
+import light.PonctualLight;
+import geometry.AObject;
+import geometry.Sphere;
+import utilities.Triplet;
+import utilities.Vector;
+import utilities.Color;
+
+import javax.imageio.ImageIO;
+
+public class RayTracing {
+    private Scene scene;
+    private BufferedImage image;
+    private Color[][] colors;
+
+    public RayTracing(Scene scene){
+        this.scene = scene;
+        this.image = new BufferedImage(scene.getPicture().getWidth(),scene.getPicture().getHeight(), BufferedImage.TYPE_INT_RGB);
+        this.colors = new Color[scene.getPicture().getWidth()][scene.getPicture().getHeight()];
+    }
+
+    public void render() throws UnsupportedOperationException {
+        Triplet lookFrom = scene.getCamera().getLookFrom();
+        Triplet lookAt = scene.getCamera().getLookAt();
+        double fovr = ((scene.getCamera().getField()*Math.PI)/180);
+        double realHeight = 2 * Math.tan(fovr / 2);
+        double pixelHeight = realHeight / scene.getPicture().getHeight();
+        double realWidth = scene.getPicture().getWidth() * pixelHeight;
+        double pixelWidth = realWidth / scene.getPicture().getWidth();
+        Vector up = new Vector(scene.getCamera().getUp());
+        Vector w = new Vector(lookFrom.subtract(lookAt)).multiply(1/lookFrom.subtract(lookAt).length());
+        Vector u = (up.vectorProduct(w.getTriplet())).multiply(1 / up.vectorProduct(w.getTriplet()).length());
+        Vector v = (w.vectorProduct(u.getTriplet())).multiply(1 / w.vectorProduct(u.getTriplet()).length());
+
+        for (int i = 0; i < scene.getPicture().getWidth(); i++) {
+            for (int j = 0; j < scene.getPicture().getHeight(); j++) {
+                double a = -(realWidth / 2) + (i + 0.5) * pixelWidth;
+                double b = (realHeight / 2) - (j + 0.5) * pixelHeight;
+                Vector d = calculateRayDirection(a, b, u, v, w);
+
+
+                Color finalColor = new Color(0,0,0);
+                double closestT = Double.POSITIVE_INFINITY;
+                AObject closestObject = null;
+
+                for (AObject object : scene.getObjects()) {
+                    double t = object.getIntersectionDistance(lookFrom, d);
+                    if (t > 0 && t < closestT) {
+                        closestT = t;
+                        closestObject = object;
+                    }
+                }
+
+                if (closestObject != null) {
+                    Triplet p = lookFrom.add(d.multiply(closestT).getTriplet());
+                    Composite composite = new Composite(scene,p,closestObject,lookFrom,d,closestT);
+                    IRender base = new BaseRenderD();
+                    finalColor = base.calculer(composite);
+
+                    if(!scene.getDirectionalLights().isEmpty() || !scene.getPonctualLights().isEmpty()){
+                        if(!scene.isShadow()) {
+                            IRender lambert = new LambertRenderD(base);
+                            finalColor = lambert.calculer(composite);
+                        } else {
+                            IRender phong = new PhongRenderD(base);
+                            finalColor = phong.calculer(composite);
+                        }
+                    }
+
+                    boolean inShadow = checkShadow(composite, closestObject);
+                    if(scene.getSpecular() != null) {
+
+                            Color reflectedColor = traceRay(p, d, closestObject,finalColor, 0);
+                            if (inShadow) {
+                                reflectedColor = reflectedColor.schurProduct(closestObject.getColor().getTriplet()); // Par exemple, atténuation de 50%
+                            }
+
+                        finalColor = finalColor.add(scene.getSpecular().schurProduct(reflectedColor.getTriplet()).getTriplet());
+                    }
+
+                }
+
+                colors[i][j] = finalColor;
+            }
+        }
+        createImg(colors);
+    }
+
+    private Vector calculateRayDirection(double a, double b, Vector u, Vector v, Vector w) {
+       return u.multiply(a).add(v.multiply(b).subtract(w.getTriplet()).getTriplet()).multiply(1 / u.multiply(a).add(v.multiply(b).subtract(w.getTriplet()).getTriplet()).length());
+    }
+
+    public Color traceRay(Triplet p, Vector d, AObject closestObject,  Color finalColor, int depth) {
+        if (depth > scene.getMaxdepth()) {
+            return new Color(0, 0, 0);
+        }
+        Vector n = closestObject.getNormal(p);
+        Vector reflection = d.subtract(n.multiply(2 * d.scalarProduct(n.getTriplet())).getTriplet());
+
+            // Effectuer un appel récursif avec le nouveau rayon réfléchi
+            Color reflectedColor = traceRay(p, reflection, closestObject, finalColor, depth + 1);
+
+            // Combinez la couleur réfléchie avec la couleur finale
+            finalColor = finalColor.add(scene.getSpecular().schurProduct(reflectedColor.getTriplet()).getTriplet());
+
+        return finalColor;
+    }
+
+    private boolean checkShadow(Composite composite, AObject objectToCheck) {
+        ArrayList<Light> lights = new ArrayList<>();
+
+        lights.addAll(scene.getDirectionalLights());
+        lights.addAll(scene.getPonctualLights());
+
+        for (Light light : lights) {
+            // Calculez le rayon entre le point d'intersection et la source lumineuse
+            Vector toLight = light.getVector().subtract(composite.getP());
+            double distanceToLight = toLight.length();
+            Vector rayToLight = toLight.norm();
+
+            // Vérifiez s'il y a une intersection avec un objet entre le point et la source lumineuse
+            for (AObject object : scene.getObjects()) {
+                if (object != objectToCheck) {
+                    double t = object.getIntersectionDistance(composite.getP(), rayToLight);
+                    if (t > 0 && t < distanceToLight) {
+                        // Il y a un objet entre le point et la source lumineuse
+                        return true; // Le point est dans l'ombre
+                    }
+                }
+            }
+        }
+
+        // Le point n'est pas dans l'ombre
+        return false;
+    }
+
+    public void createImg(Color[][] colors) {
+        try {
+            for (int i = 0; i < scene.getPicture().getWidth(); i++) {
+                for (int j = 0; j < scene.getPicture().getHeight(); j++) {
+                    int red = (int) (colors[i][j].getR() * 255);
+                    int green = (int) (colors[i][j].getG() * 255);
+                    int blue = (int) (colors[i][j].getB() * 255);
+                    int rgb = (red << 16) | (green << 8) | blue;
+                    image.setRGB(i, j, rgb);
+                }
+            }
+            File outputfile = new File(scene.getOutput());
+            ImageIO.write(image, "png", outputfile);
+            System.out.println("IMAGE GENERATE : " + scene.getOutput());
+        } catch (IOException e) {
+            System.out.println("Erreur : "+e.getMessage());
+        }
+    }
+}

@@ -1,0 +1,473 @@
+@startuml
+'https://plantuml.com/class-diagram
+
+class Main{
+  + {static} main(args: String[]): void
+}
+
+class Triplet {
+  - x: double
+  - y: double
+  - z: double
+  + Triplet(x: double, y: double, z: double)
+  + getX(): double
+  + getY(): double
+  + getZ(): double
+  + setX(x: double): void
+  + setY(y: double): void
+  + setZ(z: double): void
+  + toString(): String
+  + add(triplet: Triplet): Triplet
+  + subtract(triplet: Triplet): Triplet
+  + multiply(scalar: double): Triplet
+  + scalarProduct(triplet: Triplet): double
+  + vectorProduct(triplet: Triplet): Triplet
+  + schurProduct(triplet: Triplet): Triplet
+  + length(): double
+  + normalize(): Triplet
+}
+
+class Point {
+  - triplet: Triplet
+  + Point(Triplet: triplet)
+  + Point(x: double, y: double, z: double)
+  + subtract(triplet: Triplet): Triplet
+  + multiply(scalar: double): Triplet
+}
+
+class Vector {
+  - triplet: Triplet
+  + Vector(Triplet: triplet)
+  + Vector(x: double, y: double, z: double)
+  + add(triplet1: Triplet, triplet2: Triplet): Triplet
+  + subtract(triplet1: Triplet, triplet2: Triplet): Triplet
+  + multiply(scalar: double): Triplet
+  + scalarProduct(triplet: Triplet): double
+  + vectorProduct(triplet: Triplet): Triplet
+  + length(): double
+  + normalize(): Triplet
+}
+
+class Color {
+  - triplet: Triplet
+  + Color(Triplet: triplet)
+  + Color(r: double, g: double, b: double)
+  + add(triplet: Triplet): Triplet
+  + multiply(scalar: double): Triplet
+  + schurProduct(triplet: Triplet): Triplet
+
+}
+
+class Light {
+  - color: Color
+  + Light(color: Color)
+  + getColor(): Color
+  + {abstract} getVector(): Vector
+}
+
+class DirectionalLight {
+  - vector: Vector
+  + DirectionalLight(direction: Vector, color: Color)
+  + GetVector(): Vector
+}
+
+class PonctualLight {
+  - point: Point
+  + PonctualLight(color: Color, position: Triplet)
+  + getPosition(): Triplet
+  + getPoint(): Point
+  + getVector(): Vector
+}
+
+abstract class AObject{
+  - color: Color
+  + {abstract} getColor(): Color
+  + {abstract} setColor(color: Color): void
+  + {abstract} getIntersectionDistance(lookFrom: Triplet, d: Vector): double
+  + {abstract} getNormal(p: Triplet): Vector
+}
+
+class Plane {
+  - coordinate: Point
+  - normal: Triplet
+  - color: Color
+  + Plane(coordinate: Point, normal: Triplet)
+  + getColor(): Color
+  + setColor(color: Color): void
+  + getNormal(p: Triplet): Vector
+  + getIntersectionDistance(lookFrom: Triplet, d: Vector): double
+}
+
+class Triangles {
+  - a: Point
+  - b: Point
+  - c: Point
+  - color: Color
+  + Triangles(a: Point, b: Point, c: Point)
+  + getA(): Point
+  + getB(): Point
+  + getC(): Point
+  + getColor(): Color
+  + getIntersectionDistance(lookFrom: Triplet, d: Vector): double
+  + getNormal(p: Triplet): Vector
+  + setColor(color: Color): void
+}
+
+class Sphere {
+  - coordinate: Triplet
+  - radius: double
+  - color: Color
+  + Sphere(coordinate: Triplet, radius: double)
+  + getCoordinate(): Triplet
+  + getRadius(): double
+  + getColor(): Color
+  + setColor(color: Color): void
+  + getIntersectionDistance(lookFrom: Triplet, d: Vector): double
+  + getNormal(): Vector
+}
+
+class CheckerboardTexture implements Texture{
+  - color1: Color
+  - color2: Color
+  - size: double
+  + CheckerboardTexture(color1: Color, color2: Color, size: double)
+  + getColorAtPoint(x: double, y: double, z: double): Color
+  + toString(): String
+}
+
+interface Texture{
+  + getColorAtPoint(x: double, y: double, z: double): Color
+}
+
+class Scene {
+  - camera: Camera
+  - picture: PictureSize
+  - objects: AObject[]
+  - points: Point[]
+  - ponctualLights: PonctualLight[]
+  - directionalLights: DirectionalLight
+  - output: String
+  - nbPoints: int
+  - ambient: Color
+  - diffuse: Color
+  - shadow: boolean
+  - maxdepth: int
+  - shininess: int
+  - checker: CheckerboardTexture
+  - specular: Color
+  + Scene()
+  + getCamera(): Camera
+  + addCamera(camera: Camera): void
+  + getPicture(): PictureSize
+  + setShadow(shadow: boolean): void
+  + getNbPoints(): int
+  + getMaxDepth(): int
+  + setMaxDepth(maxdepth: int): void
+  + getShininess(): int
+  + setShininess(shininess: int): void
+  + setPictureSize(pictureSize: PictureSize): void
+  + getPonctualLights(): PonctualLight[]
+  + getAmbient(): Color
+  + setAmbient(r: double, g: double, b: double): void
+  + getDiffuse(): Color
+  + setDiffuse(r: double, g: double, b: double): void
+  + getSpecular(): Color
+  + setSpecular(specular: Color): void
+  + getChecker(): CheckerboardTexture
+  + setChecker(checker: CheckerboardTexture) void
+  + addPonctualLights(ponctualLights: PonctualLights)
+  + getDirectionalLights(): DirectionalLight[]
+  + addDirectionalLights(directionalLights: DirectionalLights): void
+  + isShadow(): boolean
+  + getObjects(): AObject[]
+  + addObjects(object: AObject): void
+  + getPoints(): Point[]
+  + setPoints(point: Point[]): void
+  + getOutput(): String
+  + setOutput(output: String): void
+  + setNbPoint(tmp: int): void
+  + getNbPoints(): int
+}
+
+class Parser{
+  - scene: Scene
+  - motsCle: Map
+  + Parser(scene: Scene)
+  + lireFichier(fileName: String)
+  - isCorrect(tab: String[]): boolean
+}
+
+class RayTracing {
+  - scene: Scene
+  - image: BufferedImage
+  - colors[][]: Color
+  + RayTracing(scene: Scene)
+  + render(): void
+  - calculateRayDirection(a: double, b: double, u: Vector, v: Vector, w: Vector): Vector
+  + createImg(colors: Color[][]): void
+}
+
+class PictureSize{
+    - width: int
+    - height: int
+    + PictureSize(width: int, height: int)
+    + getWidth(): int
+    + setWidth(width: int): void
+    + getHeight(): int
+    + setHeight(height: int): void
+    + toString(): String
+}
+
+class Camera{
+  - lookFrom: Triplet
+  - lookAt: Triplet
+  - up: Triplet
+  - field: int
+  + Camera(lookFrom: Triplet, lookAt: Triplet, up: Triplet, field: int)
+  + getField(): int
+  + setField(field: int): void
+  + getLookFrom(): Triplet
+  + getLookAt(): Triplet
+  + getUp(): Triplet
+  + toString(): String
+}
+
+class ComportementAmbient extends AbstractParser{
+  + ComportementAmbient()
+}
+
+class ParserAmbient implements IParser{
+  - tabDouble: Double[]
+  + isCorrect(scene: Scene, tab[]: String)
+}
+
+class ComportementCamera extends AbstractParser{
+  + ComportementCamera()
+}
+
+class ParserCamera implements IParser{
+  - tabDouble: Double[]
+  + isCorrect(scene: Scene, tab[]: String)
+}
+
+class ComportementChecker extends AbstractParser{
+  + ComportementChecker()
+}
+
+class ParserChecker implements IParser{
+  - tabDouble: Double[]
+  + isCorrect(scene: Scene, tab[]: String)
+}
+
+class ComportementDiffuse extends AbstractParser{
+  + ComportementDiffuse()
+}
+
+class ParserDiffuse implements IParser{
+  - tabDouble: Double[]
+  + isCorrect(scene: Scene, tab[]: String)
+}
+
+class ComportementDirectional extends AbstractParser{
+  + ComportementDirectional()
+}
+
+class ParserDirectional implements IParser{
+  - tabDouble: Double[]
+  + isCorrect(scene: Scene, tab[]: String)
+}
+
+class ComportementMaxdepth extends AbstractParser{
+  + ComportementMaxdepth()
+}
+
+class ParserMaxdepth implements IParser{
+  - tabDouble: Double[]
+  + isCorrect(scene: Scene, tab[]: String)
+}
+
+class ComportementMaxverts extends AbstractParser{
+  + ComportementMaxverts()
+}
+
+class ParserMaxverts implements IParser{
+  - tabDouble: Double[]
+  + isCorrect(scene: Scene, tab[]: String)
+}
+
+class ComportementOutput extends AbstractParser{
+  + ComportementOutput()
+}
+
+class ParserOutput implements IParser{
+  - tabDouble: Double[]
+  + isCorrect(scene: Scene, tab[]: String)
+}
+
+class ComportementPlane extends AbstractParser{
+  + ComportementPlane()
+}
+
+class ParserPlane implements IParser{
+  - tabDouble: Double[]
+  + isCorrect(scene: Scene, tab[]: String)
+}
+
+class ComportementPoint extends AbstractParser{
+  + ComportementPoint()
+}
+
+class ParserPoint implements IParser{
+  - tabDouble: Double[]
+  + isCorrect(scene: Scene, tab[]: String)
+}
+
+class ComportementShadow extends AbstractParser{
+  + ComportementShadow()
+}
+
+class ParserShadow implements IParser{
+  - tabDouble: Double[]
+  + isCorrect(scene: Scene, tab[]: String)
+}
+
+class ComportementShininess extends AbstractParser{
+  + ComportementShininess()
+}
+
+class ParserShininess implements IParser{
+  - tabDouble: Double[]
+  + isCorrect(scene: Scene, tab[]: String)
+}
+
+class ComportementSize extends AbstractParser{
+  + ComportementSize()
+}
+
+class ParserSize implements IParser{
+  - tabDouble: Double[]
+  + isCorrect(scene: Scene, tab[]: String)
+}
+
+class ComportementSpecular extends AbstractParser{
+  + ComportementSpecular()
+}
+
+class ParserSpecular implements IParser{
+  - tabDouble: Double[]
+  + isCorrect(scene: Scene, tab[]: String)
+}
+
+class ComportementSphere extends AbstractParser{
+  + ComportementSphere()
+}
+
+class ParserSphere implements IParser{
+  - tabDouble: Double[]
+  + isCorrect(scene: Scene, tab[]: String)
+}
+
+class ComportementTri extends AbstractParser{
+  + ComportementTri()
+}
+
+class ParserTri implements IParser{
+  - tabDouble: Double[]
+  + isCorrect(scene: Scene, tab[]: String)
+}
+
+class ComportementVertex extends AbstractParser{
+  + ComportementVertex()
+}
+
+class ParserVertex implements IParser{
+  - tabDouble: Double[]
+  + isCorrect(scene: Scene, tab[]: String)
+}
+
+abstract class AbstractParser{
+  # iParser: IParser
+  + isObjectCorrect(scene: Scene, tab[]: String): boolean
+}
+
+interface IParser{
+  + isCorrect(scene: Scene, tab[]: String): boolean
+}
+
+class Composite{
+  - scene: Scene
+  - n: Vector
+  - p: Triplet
+  - closestObject: AObject
+  - lookFrom: Triplet
+  - d: Vector
+  - closestT: double
+  + Composite(scene: Scene, p: Triplet, closestObject AObject, lookFrom: Triplet, d: Vector, closestT: double)
+  + getScene(): Scene
+  + setScene(scene: Scene): void
+  + getN(): Vector
+  + setN(n: Vector): void
+  + getP(): Triplet
+  + setP(p: Triplet): void
+  + getClosestObject(): AObject
+  + getLookFrom(): Triplet
+  + setLookFrom(lookFrom: Triplet): void
+  + getD(): Vector
+  + setD(d: Vector): void
+  + getClosestT(): double
+  + setClosestT(closestT: double): void
+}
+
+class BaseRenderD implements IRender{
+  - finalColor: Color
+  + BaseRenderD()
+  + calculer(composite: Composite): Color
+}
+
+class LambertRenderD extends DecoRender{
+  + LambertRenderD()
+  + calculer(composite: Composite): Color
+}
+
+class PhongRenderD extends DecoRender{
+  + PhongRenderD()
+  + calculer(composite: Composite)
+}
+
+class DecoRender implements IRender{
+  # wrapper: IRender
+  + DecoRender(wrapper: IRender)
+  + calculer(composite: Composite): Color
+}
+
+interface IRender{
+  + calculer(composite: Composite): Color
+}
+
+DirectionalLight --|> Light
+PonctualLight --|> Light
+
+RayTracing --* Scene : use
+RayTracing --* Color : use
+
+Color --* Light : use
+Plane --* Point : use
+Triangles --* Point : use
+Triplet --* Point : use
+Triplet --* Vector : use
+Triplet --* Color : use
+Composite --* Scene : use
+Parser --* Scene : use
+CheckerboardTexture --* Color : use
+Sphere --> AObject
+Triangles --> AObject
+PictureSize --* Scene : use
+
+IRender <--* DecoRender
+
+Camera --* Triplet
+
+RayTracing -- IRender
+
+
+@enduml

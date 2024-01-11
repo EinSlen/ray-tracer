@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<<<<<<< HEAD
+<module version="4">
+  <component name="SonarLintModuleSettings">
+    <option name="uniqueId" value="fbf429f9-904d-40f2-8698-aa74c6e37112" />
+=======
+<module type="JAVA_MODULE" version="4">
+  <component name="AdditionalModuleElements">
+    <content url="file://$MODULE_DIR$" dumb="true">
+      <sourceFolder url="file://$MODULE_DIR$/app/src/main/java" isTestSource="false" />
+    </content>
+  </component>
+  <component name="SonarLintModuleSettings">
+    <option name="uniqueId" value="686fe89a-8fbc-4700-a88f-426b3e2adf84" />
+>>>>>>> anglais
+  </component>
+</module>
